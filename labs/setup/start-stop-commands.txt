@@ -1,0 +1,28 @@
+START COMMANDS
+===============
+#Hadoop HDFS
+start-dfs.sh
+
+#YARN
+start-yarn.sh
+
+#JobHistoryServer
+mr-jobhistory-daemon.sh start historyserver
+
+#HiveServer
+hiveserver2 &			=> run in the background
+
+STOP COMMANDS
+=============
+#JobHistoryServer
+mr-jobhistory-daemon.sh stop historyserver
+
+#YARN
+stop-yarn.sh
+
+#HiveServer
+ps -ef | grep hive
+kill -9 <hiveserver-pid>
+
+#Hadoop HDFS
+stop-dfs.sh
