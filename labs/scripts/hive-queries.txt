@@ -1,14 +1,21 @@
 ##Hive client connection
+$ beeline
 
-$beeline
-#Hive Server needs to run to connect
-#!connect jdbc:hive2://localhost:10000 username password org.apache.hive.jdbc.HiveDriver
+#Launch beeline disabling console logs
+$ beeline --silent=true
+
+#Launch beeline with HiveServer connectivity
+$ beeline -u jdbc:hive2://localhost:10000 username password
+
+#Connect with Hive Server (Hive Server and Metastore needs to run to connect)
+!connect jdbc:hive2://localhost:10000 username password org.apache.hive.jdbc.HiveDriver
 
 #Connect without Hive Server
-!connect jdbc:hive2:// username password org.apache.hive.jdbc.HiveDriver
+#!connect jdbc:hive2:// username password org.apache.hive.jdbc.HiveDriver
 
 # Lists databases (schemas)
 show schemas;
+
 # Lists tables
 show tables;
 

@@ -73,8 +73,31 @@ hive> set hive.cli.print.header=true;	=> Displays output with headers
 hive> hive.formatted.describe.extended	=> Formats describe extended command output
 
 ##Start HiveServer2 (Optional)
-cd $HIVE_HOME
-bin/hiveserver2 &			=> run in the background
+STEP 1: Config changes in hive-site.xml (to allow hive clients to connect with default credentials)
+	
+	$ sudo nano /opt/hive/conf/hive-site.xml
+		# add between configuration tags
+		<property>
+			<name>hive.server2.enable.doAs</name>
+			<value>false</value>
+		</property>
+		
+	#Save the changes
+
+STEP 2:$ hiveserver2 &		(Starts hive server and runs in background)
+	
+	 $ ps -ef | grep hiveserver	(To verify if hiveserver is running)
+
+STEP 3:$ beeline
+	
+	  beeline> !connect jdbc:hive2://localhost:10000 username password org.apache.hive.jdbc.HiveDriver
+	  	  
+STEP 4: Configure port forwarding in putty / ssh client
+		Allow port 10002
+		
+STEP 5: Open Browser and enter
+		http://localhost:10002
+
 
 ###Connect to Hive Beeline client (Local Mode)
 beeline
@@ -88,36 +111,14 @@ show tables;
 
 ############CONFIGURING EXTERNAL METASTORE###################
 
-#HIVE METASTORE SETUP - START
-#DOWNLOAD DERBY DB
-cd ~/Downloads
-wget http://archive.apache.org/dist/db/derby/db-derby-10.4.2.0/db-derby-10.4.2.0-bin.tar.gz
-tar zxvf db-derby-10.4.2.0-bin.tar.gz
-
-sudo su
-cd ~/Downloads
-mv db-derby-10.4.2.0-bin /usr/derby
-exit
-
-sudo mkdir /usr/derby
-sudo tar xzvf db-derby-10.4.2.0-bin.tar.gz -C /usr/derby
-cd /usr/hive
-
-### TO BE UPDATED
-
-
 ###Configuring MySQL as external database for Hive Metastore
 ##NOTE: Mysql service should be installed, configured and started before this step
+
 sudo apt-get install libmysql-java
-ln -s /usr/share/java/mysql-connector-java.jar /usr/hive/lib/mysql-connector-java.jar
+ln -s /usr/share/java/mysql-connector-java.jar /opt/hive/lib/mysql-connector-java.jar
 
-mysql -u root -p
-(password: root)
-
-CREATE DATABASE metastore;
-USE metastore;
-
-SOURCE /usr/hive/scripts/metastore/upgrade/mysql/hive-schema-1.1.0.mysql.sql;
+sudo mysql -u root -p
+(password: <blank>)
 
 CREATE USER 'hive'@'localhost' IDENTIFIED BY 'hive';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'hive'@'localhost';
@@ -126,52 +127,104 @@ FLUSH PRIVILEGES;
 quit;
 
 #Configure Hive to connect to MySQL metastore db
-sudo vi /usr/hive/conf/hive-site.xml
+sudo nano /opt/hive/conf/hive-site.xml
 #########################################
-<property>
-  <name>javax.jdo.option.ConnectionURL</name>
-  <value>jdbc:mysql://localhost/metastore</value>
-  <description>the URL of the MySQL database</description>
-</property>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <!-- Embedded metastore configuration -->
+    <!--
+    <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>jdbc:derby:/opt/hive/metastore_db;databaseName=metastore_db;create=true</value>
+        <description>
+            JDBC connect string for a JDBC metastore.
+            To use SSL to encrypt/authenticate the connection, provide database-specific SSL flag in t$
+            For example, jdbc:postgresql://myhost/db?ssl=true for postgres database.
+        </description>
+    </property>
+    -->
 
-<property>
-  <name>javax.jdo.option.ConnectionDriverName</name>
-  <value>com.mysql.jdbc.Driver</value>
-</property>
+    <!-- External metastore configuration - MySQL -->
+    <property>
+       <name>javax.jdo.option.ConnectionURL</name>
+       <value>jdbc:mysql://localhost/metastore?createDatabaseIfNotExist=true&amp;useSSL=false</value>
+       <description>the URL of the MySQL database</description>
+    </property>
 
-<property>
-  <name>javax.jdo.option.ConnectionUserName</name>
-  <value>hive</value>
-</property>
+    <property>
+       <name>javax.jdo.option.ConnectionDriverName</name>
+       <value>com.mysql.jdbc.Driver</value>
+    </property>
 
-<property>
-  <name>javax.jdo.option.ConnectionPassword</name>
-  <value>hive</value>
-</property>
+    <property>
+       <name>javax.jdo.option.ConnectionUserName</name>
+       <value>hive</value>
+    </property>
 
-<property>
-  <name>datanucleus.autoCreateSchema</name>
-  <value>false</value>
-</property>
+    <property>
+       <name>javax.jdo.option.ConnectionPassword</name>
+       <value>hive</value>
+    </property>
 
-<property>
-  <name>datanucleus.fixedDatastore</name>
-  <value>true</value>
-</property>
+	<property>
+	   <name>datanucleus.autoCreateSchema</name>
+       <value>true</value>
+    </property>
 
-<property>
-  <name>datanucleus.autoStartMechanism</name> 
-  <value>SchemaTable</value>
-</property> 
+    <property>
+       <name>datanucleus.fixedDatastore</name>
+       <value>true</value>
+    </property>
 
-<property>
-  <name>hive.metastore.uris</name>
-  <value>thrift://localhost:9083</value>
-  <description>IP address (or fully-qualified domain name) and port of the metastore host</description>
-</property>
+    <property>
+       <name>datanucleus.autoStartMechanism</name>
+       <value>SchemaTable</value>
+    </property>
 
-<property>
-<name>hive.metastore.schema.verification</name>
-<value>true</value>
-</property>
+    <property>
+       <name>hive.metastore.uris</name>
+       <value>thrift://localhost:9083</value>
+       <description>IP address (or fully-qualified domain name) and port of the metastore host</description>
+    </property>
+
+    <property>
+       <name>hive.metastore.schema.verification</name>
+       <value>true</value>
+    </property>
+
+    <!-- To fix authenitcation error while starting HiveServer -->
+    <property>
+       <name>hive.metastore.event.db.notification.api.auth</name>
+       <value>false</value>
+    </property>
+
+    <!-- To disable Tez connection error-->
+    <property>
+       <name>hive.server2.active.passive.ha.enable</name>
+       <value>true</value>
+    </property>
+
+    <!--To enable the connection to HiveServer from beeline client-->
+    <property>
+       <name>hive.server2.enable.doAs</name>
+       <value>false</value>
+    </property>
+</configuration>
+
 ###############################################
+
+#Initialize metastore schema (one time activity)
+schematool -dbType mysql -initSchema
+
+#Start Hive Metastore
+hive --service metastore &			=> to run in background
+									=> metastore will be running on port 9083 by default
+
+#Start Hive Server (Optional, if want to connect from different clients)
+hive --service hiveserver2 &  		=> to run in background
+									=> default jdbc port 10000 and web ui port 10002
+
+#Start Hue
+sudo docker run -d -p 8888:8888 gethue/hue:latest									
+
