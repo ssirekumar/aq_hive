@@ -20,6 +20,27 @@ sudo mv hue-4.9.0 /opt/hue-4.9.0
 #Install hue in the specified path
 sudo PREFIX=/opt make install
 
+#HUE_HOME configuration
+sudo nano ~/.bashrc
+#############################
+export HUE_HOME=/opt/hue 
+export PATH=$PATH:$HUE_HOME/build/env/bin
+##############################################
+source ~/.bashrc			=> reloads the changes
+
+#Add hue user
+sudo useradd hue
+sudo passwd hue hue
+
+#Change ownership
+sudo chown -R hue:hue /opt/hue
+
+#Update Namenode port
+sudo vi /opt/hue/desktop/conf/hue.ini
+############################################
+webhdfs_url=http://localhost:9870/webhdfs/v1
+############################################
+
 #Start Hue
-cd /opt/hue/hue/build/env/bin
-sudo ./hue rungunicornserver
+cd /opt/hue/build/env/bin
+sudo /opt/hue/build/env/bin/supervisor &

@@ -226,5 +226,5 @@ hive --service hiveserver2 &  		=> to run in background
 									=> default jdbc port 10000 and web ui port 10002
 
 #Start Hue
-sudo docker run -d -p 8888:8888 gethue/hue:latest									
+sudo docker run -d --name hue -p 8888:8888 gethue/hue:latest									
 
